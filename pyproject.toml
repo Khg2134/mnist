@@ -1,0 +1,19 @@
+[project]
+name = "mnist"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Kg223", email = "dinhhuunguyenkhang@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.5.3",
+]
+
+[project.scripts]
+mnist = "mnist:main"
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.13.0"]
+build-backend = "uv_build"
