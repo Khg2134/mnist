@@ -1,6 +1,7 @@
 import numpy as np
 import gzip
 import os
+import cv2
 
 def load_images(path):
     with open(path, "rb") as f:
@@ -19,12 +20,15 @@ x_train = load_images("data/train-images.idx3-ubyte")
 y_train = load_labels("data/train-labels.idx1-ubyte")
 x_test  = load_images("data/t10k-images.idx3-ubyte")
 y_test  = load_labels("data/t10k-labels.idx1-ubyte")
+img_test = cv2.imread('data/test_digit_img.png', cv2.IMREAD_GRAYSCALE) 
 
 x_train = x_train.reshape(-1, 28 * 28)
 x_test  = x_test.reshape(-1, 28 * 28)
+img_test = img_test.reshape(28 * 28)
 
 x_train_norm = x_train.astype(np.float32) / 255.0
 x_test_norm = x_test.astype(np.float32) / 255.0
+img_test_norm = img_test.astype(np.float32) / 255.0
 
 
 class net :
@@ -191,9 +195,74 @@ def train(main_net: net, max_attempts):
     main_net.save()
     print(f"[TRAIN] Training complete | total_time={total_time:.2f}s | final model saved")
 
+def test(main_net: net):
+    main_net.load()
+    total_samples = len(x_test_norm)
+    print(f"[TEST] Starting | samples={total_samples}")
+
+    total_loss = 0.0
+    correct = 0
+    log_interval = max(1, total_samples // 10)
+
+    for j in range(total_samples):
+        x = x_test_norm[j]
+        y_t_idx = y_test[j]
+        y_t = np.zeros(10)
+        y_t[y_t_idx] = 1
+
+        z_o = main_net.forward_pass(x)
+        y = main_net.softmax(z_o)
+
+        predicted_idx = np.argmax(y)
+
+        eps = 1e-12
+        loss = -np.sum(y_t * np.log(y + eps))
+        total_loss += loss
+        pred = int(np.argmax(y))
+        if pred == y_t_idx:
+            correct += 1
+
+        if (j + 1) % log_interval == 0 or (j + 1) == total_samples:
+            print(
+                f"[TEST] step {j+1}/{total_samples} "
+                f"| loss={loss:.4f} "
+                f"| avg_loss={total_loss/(j+1):.4f} "
+                f"| acc={correct/(j+1):.4f}"
+                f"| answer={y_t_idx}"
+                f"| predicted_answer={predicted_idx}"
+            )
+
+    print(
+        f"[TEST] done | avg_loss={total_loss/total_samples:.4f} "
+        f"| acc={correct/total_samples:.4f} ({correct}/{total_samples})"
+    )
+
+def test_img(main_net : net):
+    x = img_test_norm
+    y_t_idx = 1
+    y_t = np.zeros(10)
+    y_t[y_t_idx] = 1
+
+    z_o = main_net.forward_pass(x)
+    y = main_net.softmax(z_o)
+
+    predicted_idx = np.argmax(y)
+
+    eps = 1e-12
+    loss = -np.sum(y_t * np.log(y + eps))
+
+    print(
+        f"[TEST] "
+        f"| loss={loss:.4f} "
+        f"| answer={y_t_idx}"
+        f"| predicted_answer={predicted_idx}"
+    )
+
 def main():
     main_net = net(500, 784, 10, 1e-3)
-    train(main_net, 10000)
+    # train(main_net, 500)
+    # test(main_net)  
+    test_img(main_net)
 
 if __name__ == "__main__":
     main()
